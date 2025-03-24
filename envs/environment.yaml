@@ -1,0 +1,7 @@
+channels:
+  - bioconda
+dependencies:
+  - bwa = 0.7.18
+  - samtools = 1.21
+  - bcftools = 1.21
+  - fastp = 0.24.0

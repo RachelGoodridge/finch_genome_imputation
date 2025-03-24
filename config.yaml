@@ -1,0 +1,15 @@
+# Files
+# Reference Genome
+ref: /fs/cbsuclarkfs1/storage/reg259/reference/small_tree_finch_genome.fna
+# Reference Panel
+panel: /fs/cbsuclarkfs1/storage/reg259/panel/finches_sentieon_concat_SNPs_fil_setGT_PASS_BIALLELIC_ACf.vcf.gz
+# Sample Reads
+csv: /workdir/reg259/galap_finches/project/samples.csv
+# Average Depth Script
+script: /workdir/reg259/galap_finches/pipeline_RG/scripts/average_depth.py
+
+# Directories
+# Genetic Maps
+gmap: /fs/cbsuclarkfs1/storage/reg259/gmap_files
+# Environments
+envs: /workdir/reg259/galap_finches/pipeline_RG/envs

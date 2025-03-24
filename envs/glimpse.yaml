@@ -1,0 +1,4 @@
+channels:
+  - bioconda
+dependencies:
+  - glimpse-bio = 1.1.1
