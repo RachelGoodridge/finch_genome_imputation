@@ -4,7 +4,7 @@ ref: /fs/cbsuclarkfs1/storage/reg259/reference/small_tree_finch_genome.fna
 # Reference Panel
 panel: /fs/cbsuclarkfs1/storage/reg259/panel/finches_sentieon_concat_SNPs_fil_setGT_PASS_BIALLELIC_ACf.vcf.gz
 # Sample Reads
-csv: /workdir/reg259/finch_genome_imputation/project/samples.csv
+csv: /workdir/reg259/finch_genome_imputation/example_project/samples.csv
 # Average Depth Script
 script: /workdir/reg259/finch_genome_imputation/scripts/average_depth.py
 

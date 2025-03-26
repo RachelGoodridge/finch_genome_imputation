@@ -1,4 +1,7 @@
 channels:
   - bioconda
+  - conda-forge
 dependencies:
+  - htslib >= 1.16
+  - boost-cpp = 1.74.0
   - glimpse-bio = 1.1.1
