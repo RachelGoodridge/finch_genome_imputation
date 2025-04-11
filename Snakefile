@@ -2,6 +2,11 @@ configfile: "config.yaml"
 import pandas as pd
 import os
 
+# register storage provider
+if config["reads_remote_fs"]:
+    storage:
+        provider="fs"
+
 # get a list of sample names from the .csv file
 def list_samples():
     reads = pd.read_csv(config["csv"])
@@ -12,29 +17,17 @@ def list_samples():
 def list_read1(wc):
     reads = pd.read_csv(config["csv"])
     read1 = reads[reads["name"]==wc.sample]["read1"].values[0]
+    if config["reads_remote_fs"]:
+        return(storage.fs(read1))
     return(read1)
 
 # find the corresponding read2 given the sample name
 def list_read2(wc):
     reads = pd.read_csv(config["csv"])
     read2 = reads[reads["name"]==wc.sample]["read2"].values[0]
+    if config["reads_remote_fs"]:
+        return(storage.fs(read2))
     return(read2)
-
-# find the corresponding input region given the chromosome and chunk id
-def extract_in_region(wc):
-    chunks = checkpoints.chunk.get(chr_name=wc.chr_name).output[0]
-    with open(chunks, "r") as file:
-        lines = file.readlines()
-        in_region = lines[int(wc.id_num)].split()[2]
-    return(in_region)
-
-# find the corresponding output region given the chromosome and chunk id
-def extract_out_region(wc):
-    chunks = checkpoints.chunk.get(chr_name=wc.chr_name).output[0]
-    with open(chunks, "r") as file:
-        lines = file.readlines()
-        out_region = lines[int(wc.id_num)].split()[3]
-    return(out_region)
 
 # get a list of chunk ids from the chunks.txt file given the chromosome and list .vcfs to merge
 def extract_ids_vcfs(wc):
@@ -292,17 +285,17 @@ rule imputation:
     output:
         vcf = temp("results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz"),
         csi = temp("results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz.csi")
-    params:
-        in_region = extract_in_region,  # input region from chunks file
-        out_region = extract_out_region  # output region from chunks file
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
         "logs/3_imputed/{sample}/{chr_name}/{id_num}.txt"
     shell:
         """
-        GLIMPSE_phase --main 15 --input {input.vcf} --reference {input.panel} --map {input.gmap} --input-region {params.in_region} \
-            --output-region {params.out_region} --output {output.vcf} &> {log}
+        LINE=$(awk "NR == $((10#{wildcards.id_num} + 1))" {input.chunks})
+        IRG=$(echo $LINE | cut -d" " -f3)
+        ORG=$(echo $LINE | cut -d" " -f4)
+        GLIMPSE_phase --main 15 --input {input.vcf} --reference {input.panel} --map {input.gmap} --input-region ${{IRG}} \
+            --output-region ${{ORG}} --output {output.vcf} &> {log}
         bcftools index -f {output.vcf}
         """
 
@@ -321,6 +314,7 @@ rule ligate:
     log:
         "logs/4_ligated/{sample}/{chr_name}.txt"
     shell:
+        #wc -l $CHUNKS | awk '{print $1}'
         """
         ls {input.vcf} > {output.lst}
         GLIMPSE_ligate --input {output.lst} --output {output.vcf} &> {log}

@@ -1,15 +1,16 @@
 # Files
 # Reference Genome
-ref: /fs/cbsuclarkfs1/storage/reg259/reference/small_tree_finch_genome.fna
+ref: /home2/cbsuenbody/reg259/finch_genome_imputation/reference/small_tree_finch_genome.fna
 # Reference Panel
-panel: /fs/cbsuclarkfs1/storage/reg259/panel/finches_sentieon_concat_SNPs_fil_setGT_PASS_BIALLELIC_ACf.vcf.gz
+panel: /home2/cbsuenbody/reg259/finch_genome_imputation/panel/finches_sentieon_concat_SNPs_fil_setGT_PASS_BIALLELIC_ACf.vcf.gz
 # Sample Reads
-csv: /workdir/reg259/finch_genome_imputation/example_project/samples.csv
+csv: /home2/cbsuenbody/reg259/finch_genome_imputation/example_project/samples.csv
+reads_remote_fs: True
 # Average Depth Script
-script: /workdir/reg259/finch_genome_imputation/scripts/average_depth.py
+script: /home2/cbsuenbody/reg259/finch_genome_imputation/scripts/average_depth.py
 
 # Directories
 # Genetic Maps
-gmap: /fs/cbsuclarkfs1/storage/reg259/gmap_files
+gmap: /home2/cbsuenbody/reg259/finch_genome_imputation/gmap_files
 # Environments
-envs: /workdir/reg259/finch_genome_imputation/envs
+envs: /home2/cbsuenbody/reg259/finch_genome_imputation/envs

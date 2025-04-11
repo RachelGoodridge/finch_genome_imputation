@@ -1,0 +1,11 @@
+__use_yte__: True
+executor: slurm
+use-conda: True
+default-resources:
+  slurm_account: bscb02
+  slurm_partition: short
+  mem_mb: attempt * 8000  # maximum number of megabytes of memory to request for a given job
+  runtime: 1440  # time (in minutes) requested for the jobs
+jobs: 500  # maximum number of jobs Snakemake is allowed to submit to SLURM at a given time
+latency-wait: 60  # time, in seconds, Snakemake should wait after a job has finished to check for the expected outputs
+retries: 3  # number of times Snakemake can try to resubmit a failed job

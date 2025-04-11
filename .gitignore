@@ -1,5 +1,10 @@
 .vscode
+bad_read
 example_project/.snakemake
 example_project/logs
 example_project/panels
 example_project/results
+gmap_files
+panel
+reference
+test_reads_chr25
