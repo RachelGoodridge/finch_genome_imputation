@@ -6,5 +6,6 @@ example_project/panels
 example_project/results
 gmap_files
 panel
+plink
 reference
 test_reads_chr25
