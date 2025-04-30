@@ -16,7 +16,7 @@ GLIMPSE pipeline for genomic imputation and variant calling
 - profiles/config.yaml : must be inside a folder called "profiles" and contain the slurm account
 - Snakefile
 
-## Instructions for Running without SLURM
+## Instructions for Running
 1. activate the environment containing snakemake and the plugins : conda activate snakemake
 2. change to the directory containing the snakefile
 3. run with one of the following commands

@@ -4,7 +4,7 @@ ref: /home2/cbsuenbody/reg259/finch_genome_imputation/reference/small_tree_finch
 # Reference Panel
 panel: /home2/cbsuenbody/reg259/finch_genome_imputation/panel/finches_sentieon_concat_SNPs_fil_setGT_PASS_BIALLELIC_ACf.vcf.gz
 # Sample Reads
-csv: /home2/cbsuenbody/reg259/finch_genome_imputation/example_project/samples.csv
+csv: /home2/cbsuenbody/reg259/finch_genome_imputation/final_project/samples.csv
 reads_remote_fs: True
 # Average Depth Script
 script: /home2/cbsuenbody/reg259/finch_genome_imputation/scripts/average_depth.py

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 # change to the correct directory
-workdir = "/workdir/ede34/projects/galap_finches/reference"
+workdir = "/home2/cbsuenbody/reg259/finch_genome_imputation/reference"
 os.chdir(workdir)
 
 # identify files
@@ -14,6 +14,9 @@ new_file = "small_tree_finch_genome.fna"
 # find all the scaffold names
 info_file = [file for file in os.listdir(workdir) if ".tsv" in file][0]
 info = pd.read_csv(info_file, sep="\t")
+
+# change contig226 to chrLGE22 (which matches the panel)
+info.loc[(info["Sequence name"]=="contig226"), "Sequence name"] = "chrLGE22"
 
 # open the original fasta file and create a new fasta file
 with open(old_file, "r") as in_ref, open(new_file, "w") as out_ref:

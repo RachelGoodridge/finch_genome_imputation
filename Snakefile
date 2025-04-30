@@ -70,7 +70,9 @@ rule all:
         "results/depth_stats.csv",
         "results/avg_depth_sample.csv",
         "results/avg_depth_chr.csv",
-        "results/final_output.vcf.gz"
+        "results/final_output.vcf.gz",
+        "results/final_output_filled.vcf.gz",
+        "results/final_output_filled.vcf.gz.csi"
 
 # index the reference genome
 rule ref_bwa_index:
@@ -92,8 +94,8 @@ rule fastp:
         r1 = list_read1,  # forward read
         r2 = list_read2  # reverse read
     output:
-        r1 = temp("results/0_trimmed/{sample}_R1.fastq.gz"),
-        r2 = temp("results/0_trimmed/{sample}_R2.fastq.gz"),
+        r1 = "results/0_trimmed/{sample}_R1.fastq.gz",
+        r2 = "results/0_trimmed/{sample}_R2.fastq.gz",
         summ = "logs/0_trimmed/{sample}.fastp.out"
     threads: 8
     conda:
@@ -111,7 +113,7 @@ rule bwa_mem_map:
         r1 = "results/0_trimmed/{sample}_R1.fastq.gz",
         r2 = "results/0_trimmed/{sample}_R2.fastq.gz"
     output:
-        temp("results/1_mapped/{sample}.bam")  # alignment file
+        "results/1_mapped/{sample}.bam"  # alignment file
     threads: 8
     params:
         rg = lambda wc: r"'@RG\tID:id\tSM:{sm}\tLB:lib\tPL:ILLUMINA'".format(sm=wc.sample)
@@ -127,7 +129,7 @@ rule bam_samtools_index:
     input:
         "results/1_mapped/{sample}.bam"  # alignment file
     output:
-        temp("results/1_mapped/{sample}.bam.bai")
+        "results/1_mapped/{sample}.bam.bai"
     conda:
         config["envs"] + "/environment.yaml"
     shell:
@@ -139,8 +141,8 @@ rule separate_bam:
         bam = "results/1_mapped/{sample}.bam",  # alignment file
         bam_index = "results/1_mapped/{sample}.bam.bai"
     output:
-        bam = temp("results/1.1_split/{sample}/{chr_name}.bam"),
-        bam_index = temp("results/1.1_split/{sample}/{chr_name}.bam.bai")
+        bam = "results/1.1_split/{sample}/{chr_name}.bam",
+        bam_index = "results/1.1_split/{sample}/{chr_name}.bam.bai"
     conda:
         config["envs"] + "/environment.yaml"
     shell:
@@ -155,7 +157,7 @@ rule read_depth:
         bam = "results/1.1_split/{sample}/{chr_name}.bam",
         bam_index = "results/1.1_split/{sample}/{chr_name}.bam.bai"
     output:
-        temp("results/1.2_depth/{sample}/{chr_name}.txt")
+        "results/1.2_depth/{sample}/{chr_name}.txt"
     conda:
         config["envs"] + "/environment.yaml"
     shell:
@@ -245,8 +247,8 @@ rule sites_mpileup:
         bam = "results/1.1_split/{sample}/{chr_name}.bam",
         bam_index = "results/1.1_split/{sample}/{chr_name}.bam.bai"
     output:
-        vcf = temp("results/2_mpileup/{sample}/{chr_name}.vcf.gz"),
-        csi = temp("results/2_mpileup/{sample}/{chr_name}.vcf.gz.csi")
+        vcf = "results/2_mpileup/{sample}/{chr_name}.vcf.gz",
+        csi = "results/2_mpileup/{sample}/{chr_name}.vcf.gz.csi"
     threads: 8
     conda:
         config["envs"] + "/environment.yaml"
@@ -283,8 +285,8 @@ rule imputation:
         gmap = config["gmap"] + "/{chr_name}.gmap",  # genetic map
         chunks = "panels/panel_{chr_name}/chunks.txt"
     output:
-        vcf = temp("results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz"),
-        csi = temp("results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz.csi")
+        vcf = "results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz",
+        csi = "results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz.csi"
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
@@ -306,9 +308,9 @@ rule ligate:
         vcf = extract_ids_vcfs,
         csi = extract_ids_csi
     output:
-        lst = temp("results/4_ligated/{sample}/{chr_name}.txt"),
-        vcf = temp("results/4_ligated/{sample}/{chr_name}.vcf.gz"),
-        csi = temp("results/4_ligated/{sample}/{chr_name}.vcf.gz.csi")
+        lst = "results/4_ligated/{sample}/{chr_name}.txt",
+        vcf = "results/4_ligated/{sample}/{chr_name}.vcf.gz",
+        csi = "results/4_ligated/{sample}/{chr_name}.vcf.gz.csi"
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
@@ -328,8 +330,8 @@ rule sample_hap:
         vcf = "results/4_ligated/{sample}/{chr_name}.vcf.gz",
         csi = "results/4_ligated/{sample}/{chr_name}.vcf.gz.csi"
     output:
-        vcf = temp("results/5_phased/{sample}/{chr_name}.vcf.gz"),
-        csi = temp("results/5_phased/{sample}/{chr_name}.vcf.gz.csi")
+        vcf = "results/5_phased/{sample}/{chr_name}.vcf.gz",
+        csi = "results/5_phased/{sample}/{chr_name}.vcf.gz.csi"
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
@@ -346,8 +348,8 @@ rule merge_chrs:
         vcf = list_chrs_vcf,
         csi = list_chrs_csi
     output:
-        vcf = temp("results/6_merged/{sample}.vcf.gz"),
-        csi = temp("results/6_merged/{sample}.vcf.gz.csi")
+        vcf = "results/6_merged/{sample}.vcf.gz",
+        csi = "results/6_merged/{sample}.vcf.gz.csi"
     conda:
         config["envs"] + "/environment.yaml"
     shell:
@@ -362,8 +364,14 @@ rule merge_all:
         vcf = expand("results/6_merged/{sample}.vcf.gz", sample=list_samples()),
         csi = expand("results/6_merged/{sample}.vcf.gz.csi", sample=list_samples())
     output:
-        "results/final_output.vcf.gz"
+        vcf = "results/final_output.vcf.gz",
+        filled = "results/final_output_filled.vcf.gz",
+        csi = "results/final_output_filled.vcf.gz.csi"
     conda:
         config["envs"] + "/environment.yaml"
     shell:
-        "bcftools merge {input.vcf} -Oz -o {output}"
+        """
+        bcftools merge {input.vcf} -Oz -o {output.vcf}
+        bcftools +fill-tags {output.vcf} -Oz -o {output.filled} -- -t all
+        bcftools index -f {output.filled}
+        """
