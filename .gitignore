@@ -1,15 +1,9 @@
 .vscode
-admixture
-bad_read
-depth
 final_project/.snakemake
 final_project/logs
 final_project/panels
+final_project/raw_NCBI
 final_project/results
 gmap_files
-merged_data
 panel
-plink
 reference
-test_reads_chr25
-vcftools

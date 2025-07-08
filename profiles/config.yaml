@@ -3,7 +3,7 @@ executor: slurm
 use-conda: True
 
 default-resources:
-  slurm_account: bscb02
+  slurm_account: cbsuenbody
   slurm_partition: short
   mem_mb: attempt * 8000  # maximum number of megabytes of memory to request for a given job
   runtime: 240  # time (in minutes) requested for the jobs

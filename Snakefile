@@ -1,33 +1,80 @@
 configfile: "config.yaml"
 import pandas as pd
 import os
+import time
+from Bio import Entrez
+import xml.etree.ElementTree as ET
 
 # register storage provider
 if config["reads_remote_fs"]:
     storage:
         provider="fs"
 
-# get a list of sample names from the .csv file
+# pull down sample names and SRR ids from NCBI
+def list_samples_ncbi():
+    Entrez.email = "reg259@cornell.edu"
+
+    # Fetch the BioProject record
+    handle = Entrez.esearch(db="bioproject", term=config["NCBI_Accession"], retmode="xml")
+    record = Entrez.read(handle)
+    uid = ",".join(record['IdList'])
+    handle.close()
+
+    # Use elink to find related SRA experiments
+    handle = Entrez.elink(dbfrom="bioproject", db="sra", LinkName="bioproject_sra", from_uid=uid)
+    record = Entrez.read(handle)
+    sra_ids = [link['Id'] for link in record[0]['LinkSetDb'][0]['Link']]
+    handle.close()
+
+    # Fetch the SRR id from each SRA id
+    srr_ids, sample_names = [], []
+    for sra in sra_ids:
+        handle = Entrez.efetch(db="sra", id=sra, rettype="xml", retmode="xml")
+        xml_data = handle.read()
+        root = ET.fromstring(xml_data)
+        handle.close()
+        time.sleep(0.34)  # NCBI's rate limit is 3 requests per second
+
+        for experiment in root.findall('.//EXPERIMENT'):
+            srr_ids.append([element.attrib.get('accession') for element in root.iter('RUN')][0])
+            sample_names.append(experiment.find('.//LIBRARY_DESCRIPTOR//LIBRARY_NAME').text)
+
+    return dict(zip(sample_names, srr_ids))
+
+# fetch the NCBI data if needed
+if config["NCBI_data"]:
+    NCBI_data = list_samples_ncbi()
+
+# get a list of sample names from the .csv file (or from NCBI_data)
 def list_samples():
-    reads = pd.read_csv(config["csv"])
-    names = reads["name"].tolist()
+    if config["reads_local"] or config["reads_remote_fs"]:
+        reads = pd.read_csv(config["csv"])
+        names = reads["name"].tolist()
+    elif config["NCBI_data"]:
+        names = list(NCBI_data.keys())
     return(names)
 
 # find the corresponding read1 given the sample name
 def list_read1(wc):
-    reads = pd.read_csv(config["csv"])
-    read1 = reads[reads["name"]==wc.sample]["read1"].values[0]
-    if config["reads_remote_fs"]:
-        return(storage.fs(read1))
-    return(read1)
+    if config["reads_local"] or config["reads_remote_fs"]:
+        reads = pd.read_csv(config["csv"])
+        read1 = reads[reads["name"]==wc.sample]["read1"].values[0]
+        if config["reads_remote_fs"]:
+            return(storage.fs(read1))
+        return(read1)
+    elif config["NCBI_data"]:
+        return(f"raw_NCBI/{wc.sample}_R1.fastq.gz")
 
 # find the corresponding read2 given the sample name
 def list_read2(wc):
-    reads = pd.read_csv(config["csv"])
-    read2 = reads[reads["name"]==wc.sample]["read2"].values[0]
-    if config["reads_remote_fs"]:
-        return(storage.fs(read2))
-    return(read2)
+    if config["reads_local"] or config["reads_remote_fs"]:
+        reads = pd.read_csv(config["csv"])
+        read2 = reads[reads["name"]==wc.sample]["read2"].values[0]
+        if config["reads_remote_fs"]:
+            return(storage.fs(read2))
+        return(read2)
+    elif config["NCBI_data"]:
+        return(f"raw_NCBI/{wc.sample}_R2.fastq.gz")
 
 # get a list of chunk ids from the chunks.txt file given the chromosome and list .vcfs to merge
 def extract_ids_vcfs(wc):
@@ -88,14 +135,36 @@ rule ref_bwa_index:
         samtools faidx {input}
         """
 
+# get the data from NCBI if needed
+rule get_data_ncbi:
+    output:
+        r1 = temp("raw_NCBI/{sample}_R1.fastq.gz"),
+        r2 = temp("raw_NCBI/{sample}_R2.fastq.gz")
+    threads: 8
+    params:
+        srr = lambda wc: NCBI_data[wc.sample]  # get the SRR id corresponding to the sample
+    conda:
+        config["envs"] + "/fasterq.yaml"
+    log:
+        "logs/raw_NCBI/{sample}.txt"
+    shell:
+        """
+        prefetch --max-size 1T {params.srr}
+        fasterq-dump {params.srr}/{params.srr}.sra -S -e {threads} -O raw_NCBI
+        mv raw_NCBI/{params.srr}_1.fastq raw_NCBI/{wildcards.sample}_R1.fastq
+        mv raw_NCBI/{params.srr}_2.fastq raw_NCBI/{wildcards.sample}_R2.fastq
+        pigz -p {threads} raw_NCBI/{wildcards.sample}_R*.fastq
+        rm -rf {params.srr}
+        """
+
 # clean up the reads with adapter trimming
 rule fastp:
     input:
         r1 = list_read1,  # forward read
         r2 = list_read2  # reverse read
     output:
-        r1 = "results/0_trimmed/{sample}_R1.fastq.gz",
-        r2 = "results/0_trimmed/{sample}_R2.fastq.gz",
+        r1 = temp("results/0_trimmed/{sample}_R1.fastq.gz"),
+        r2 = temp("results/0_trimmed/{sample}_R2.fastq.gz"),
         summ = "logs/0_trimmed/{sample}.fastp.out"
     threads: 8
     conda:
@@ -113,7 +182,7 @@ rule bwa_mem_map:
         r1 = "results/0_trimmed/{sample}_R1.fastq.gz",
         r2 = "results/0_trimmed/{sample}_R2.fastq.gz"
     output:
-        "results/1_mapped/{sample}.bam"  # alignment file
+        temp("results/1_mapped/{sample}.bam")  # alignment file
     threads: 8
     params:
         rg = lambda wc: r"'@RG\tID:id\tSM:{sm}\tLB:lib\tPL:ILLUMINA'".format(sm=wc.sample)
@@ -129,7 +198,7 @@ rule bam_samtools_index:
     input:
         "results/1_mapped/{sample}.bam"  # alignment file
     output:
-        "results/1_mapped/{sample}.bam.bai"
+        temp("results/1_mapped/{sample}.bam.bai")
     conda:
         config["envs"] + "/environment.yaml"
     shell:
@@ -141,8 +210,8 @@ rule separate_bam:
         bam = "results/1_mapped/{sample}.bam",  # alignment file
         bam_index = "results/1_mapped/{sample}.bam.bai"
     output:
-        bam = "results/1.1_split/{sample}/{chr_name}.bam",
-        bam_index = "results/1.1_split/{sample}/{chr_name}.bam.bai"
+        bam = temp("results/1.1_split/{sample}/{chr_name}.bam"),
+        bam_index = temp("results/1.1_split/{sample}/{chr_name}.bam.bai")
     conda:
         config["envs"] + "/environment.yaml"
     shell:
@@ -247,8 +316,8 @@ rule sites_mpileup:
         bam = "results/1.1_split/{sample}/{chr_name}.bam",
         bam_index = "results/1.1_split/{sample}/{chr_name}.bam.bai"
     output:
-        vcf = "results/2_mpileup/{sample}/{chr_name}.vcf.gz",
-        csi = "results/2_mpileup/{sample}/{chr_name}.vcf.gz.csi"
+        vcf = temp("results/2_mpileup/{sample}/{chr_name}.vcf.gz"),
+        csi = temp("results/2_mpileup/{sample}/{chr_name}.vcf.gz.csi")
     threads: 8
     conda:
         config["envs"] + "/environment.yaml"
@@ -285,8 +354,8 @@ rule imputation:
         gmap = config["gmap"] + "/{chr_name}.gmap",  # genetic map
         chunks = "panels/panel_{chr_name}/chunks.txt"
     output:
-        vcf = "results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz",
-        csi = "results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz.csi"
+        vcf = temp("results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz"),
+        csi = temp("results/3_imputed/{sample}/{chr_name}/{id_num}.vcf.gz.csi")
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
@@ -308,9 +377,9 @@ rule ligate:
         vcf = extract_ids_vcfs,
         csi = extract_ids_csi
     output:
-        lst = "results/4_ligated/{sample}/{chr_name}.txt",
-        vcf = "results/4_ligated/{sample}/{chr_name}.vcf.gz",
-        csi = "results/4_ligated/{sample}/{chr_name}.vcf.gz.csi"
+        lst = temp("results/4_ligated/{sample}/{chr_name}.txt"),
+        vcf = temp("results/4_ligated/{sample}/{chr_name}.vcf.gz"),
+        csi = temp("results/4_ligated/{sample}/{chr_name}.vcf.gz.csi")
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
@@ -330,8 +399,8 @@ rule sample_hap:
         vcf = "results/4_ligated/{sample}/{chr_name}.vcf.gz",
         csi = "results/4_ligated/{sample}/{chr_name}.vcf.gz.csi"
     output:
-        vcf = "results/5_phased/{sample}/{chr_name}.vcf.gz",
-        csi = "results/5_phased/{sample}/{chr_name}.vcf.gz.csi"
+        vcf = temp("results/5_phased/{sample}/{chr_name}.vcf.gz"),
+        csi = temp("results/5_phased/{sample}/{chr_name}.vcf.gz.csi")
     conda:
         config["envs"] + "/glimpse.yaml"
     log:
