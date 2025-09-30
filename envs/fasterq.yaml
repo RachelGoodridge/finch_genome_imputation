@@ -1,3 +1,4 @@
+name: fasterq
 channels:
   - bioconda
   - conda-forge

@@ -1,0 +1,24 @@
+# Files
+# Reference Genome
+ref: /local/storage/reference/small_tree_finch_genome.fna
+# Reference Panel
+panel: /local/storage/phased_reference_panel/chrZ.415samps.postrecomb.bcf
+# Sample Reads
+reads_local: True
+reads_remote_fs: False
+csv: /SSD/reg259/finch_genome_imputation/project/samples.csv
+# Or NCBI Data
+NCBI_data: False
+NCBI_Accession: PRJNA392917
+# Average Depth Script
+script: /SSD/reg259/finch_genome_imputation/scripts/average_depth.py
+
+# Directories
+# Genetic Maps
+gmap: /local/storage/gmap_files
+# Environments
+envs: /SSD/reg259/finch_genome_imputation/envs
+
+# Provide a list of chromosomes to use
+# Note: chromosomes must be present in the reference genome, reference panel, and genetic maps
+chrs: ["chrZ"]

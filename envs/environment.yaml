@@ -1,3 +1,4 @@
+name: environment
 channels:
   - bioconda
   - conda-forge
