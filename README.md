@@ -71,4 +71,4 @@ output is generated within the project directory
 
 
 ## Pipeline Schematic
-<img src="https://github.com/RachelGoodridge/finch_genome_imputation/blob/main/pipeline_design.png" alt="Finch Genome Imputation Pipeline Schematic" width="80%" height="80%">
+![Finch Genome Imputation Pipeline Schematic](pipeline_design.png)
