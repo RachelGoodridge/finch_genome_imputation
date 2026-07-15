@@ -3,7 +3,6 @@ project/logs
 project/panels
 project/raw_NCBI
 project/results
-scripts/__pycache__
 scripts/generate_csv_input.py
 scripts/NCBI_search.py
 scripts/parse_log.py
