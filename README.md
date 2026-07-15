@@ -68,3 +68,7 @@ output is generated within the project directory
     - 6_merged: a directory containing per sample vcf files (useful for re-rerunning the pipeline to add additional samples)
     - 3 depth statistics .csv files: one averaged per chromosome, one averaged per sample, and one split both ways
     - a final zipped and indexed vcf file (with filled info columns) of all samples/chromosomes and accompanying stats file
+
+
+## Pipeline Schematic
+<img src="https://github.com/RachelGoodridge/finch_genome_imputation/blob/main/pipeline_design.png" alt="Finch Genome Imputation Pipeline Schematic" width="50%" height="50%">
